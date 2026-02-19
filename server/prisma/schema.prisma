@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Upload {
+  id          Int         @id @default(autoincrement())
+  filename    String
+  uploadedAt  DateTime    @default(now())
+  uploadedBy  String      @default("system")
+  status      String      @default("PROCESSING") // PROCESSING | COMPLETED | FAILED
+  rawText     String?
+  recordCount Int         @default(0)
+  discharges  Discharge[]
+}
+
+model Discharge {
+  id                  Int              @id @default(autoincrement())
+  uploadId            Int
+  upload              Upload           @relation(fields: [uploadId], references: [id])
+  patientName         String
+  epicId              String
+  phoneNumber         String?
+  attendingPhysician  String
+  dischargeDate       String
+  primaryCareProvider String?
+  insurance           String
+  disposition         String
+  status              String           @default("PENDING_REVIEW") // PENDING_REVIEW | APPROVED | REJECTED
+  confidence          Float            @default(1.0)
+  reviewedBy          String?
+  reviewedAt          DateTime?
+  rawText             String?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  edits               DischargeEdit[]
+  enrichments         Enrichment[]
+}
+
+model DischargeEdit {
+  id          Int       @id @default(autoincrement())
+  dischargeId Int
+  discharge   Discharge @relation(fields: [dischargeId], references: [id])
+  fieldName   String
+  oldValue    String?
+  newValue    String?
+  editedBy    String
+  editedAt    DateTime  @default(now())
+  reason      String?
+}
+
+model Enrichment {
+  id          Int       @id @default(autoincrement())
+  dischargeId Int
+  discharge   Discharge @relation(fields: [dischargeId], references: [id])
+  fieldName   String
+  source      String
+  result      String    // JSON string
+  enrichedAt  DateTime  @default(now())
+}
