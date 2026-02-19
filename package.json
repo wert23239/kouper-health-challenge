@@ -4,7 +4,8 @@
   "scripts": {
     "dev": "concurrently \"cd server && npm run dev\" \"cd client && npm run dev\"",
     "install:all": "cd server && npm install && cd ../client && npm install",
-    "build": "cd client && npm run build",
+    "build": "cd client && npm install && npm run build && cd ../server && npm install && npx prisma generate",
+    "start": "cd server && npx prisma db push && npx tsx src/index.ts",
     "seed": "cd server && npx ts-node src/seed.ts",
     "test": "cd server && npm test"
   },
