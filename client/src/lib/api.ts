@@ -40,7 +40,7 @@ export const api = {
     if (params?.uploadId) qs.set('uploadId', String(params.uploadId));
     if (params?.search) qs.set('search', params.search);
     const query = qs.toString();
-    return request<Discharge[]>(`/discharges${query ? `?${query}` : ''}`);
+    return request<{ data: Discharge[]; total: number }>(`/discharges${query ? `?${query}` : ''}`).then(r => r.data);
   },
   getDischarge: (id: number) => request<Discharge>(`/discharges/${id}`),
   editDischarge: (id: number, fields: Record<string, string>, editedBy: string, reason?: string) =>

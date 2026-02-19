@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import prisma from '../lib/prisma';
+import { prisma } from '../lib/prisma';
 import { validatePhone } from '../services/enrichment';
 
 const router = Router();
@@ -10,7 +10,7 @@ const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => P
 
 // GET /api/discharges - List with filters
 router.get('/', asyncHandler(async (req, res) => {
-  const { status, uploadId, search } = req.query;
+  const { status, uploadId, search, page, limit } = req.query;
 
   const where: any = {};
   if (status && status !== 'ALL') where.status = status as string;
@@ -22,13 +22,21 @@ router.get('/', asyncHandler(async (req, res) => {
     ];
   }
 
-  const discharges = await prisma.discharge.findMany({
-    where,
-    orderBy: { createdAt: 'desc' },
-    include: { upload: { select: { filename: true } } },
-  });
+  const take = Math.min(parseInt(limit as string) || 100, 500);
+  const skip = ((parseInt(page as string) || 1) - 1) * take;
 
-  res.json(discharges);
+  const [discharges, total] = await Promise.all([
+    prisma.discharge.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: { upload: { select: { filename: true } } },
+      take,
+      skip,
+    }),
+    prisma.discharge.count({ where }),
+  ]);
+
+  res.json({ data: discharges, total, page: Math.floor(skip / take) + 1, pageSize: take });
 }));
 
 // GET /api/discharges/stats — MUST come before /:id
@@ -47,7 +55,7 @@ router.get('/stats', asyncHandler(async (_req, res) => {
 // GET /api/discharges/:id
 router.get('/:id', asyncHandler(async (req, res) => {
   const id = parseInt(req.params.id);
-  if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
+  if (isNaN(id)) return res.status(400).json({ error: 'Invalid discharge ID' });
   const discharge = await prisma.discharge.findUnique({
     where: { id },
     include: {
@@ -64,33 +72,24 @@ router.get('/:id', asyncHandler(async (req, res) => {
   res.json(discharge);
 }));
 
-// Whitelist of editable fields to prevent mass-assignment
-const EDITABLE_FIELDS = new Set([
-  'patientName', 'epicId', 'phoneNumber', 'attendingPhysician',
-  'dischargeDate', 'primaryCareProvider', 'insurance', 'disposition',
-]);
-
 // PATCH /api/discharges/:id - Edit with lineage
 router.patch('/:id', asyncHandler(async (req, res) => {
   const id = parseInt(req.params.id);
-  if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
-
+  if (isNaN(id)) return res.status(400).json({ error: 'Invalid discharge ID' });
   const { fields, editedBy, reason } = req.body;
 
   if (!fields || typeof fields !== 'object' || !editedBy) {
     return res.status(400).json({ error: 'fields (object) and editedBy (string) are required' });
   }
 
-  // Filter to only allowed fields
-  const safeFields: Record<string, string> = {};
-  for (const [key, value] of Object.entries(fields)) {
-    if (EDITABLE_FIELDS.has(key)) {
-      safeFields[key] = value as string;
-    }
-  }
-
-  if (Object.keys(safeFields).length === 0) {
-    return res.status(400).json({ error: 'No valid editable fields provided' });
+  // Whitelist editable fields to prevent arbitrary column writes
+  const EDITABLE_FIELDS = new Set([
+    'patientName', 'epicId', 'phoneNumber', 'attendingPhysician',
+    'dischargeDate', 'primaryCareProvider', 'insurance', 'disposition',
+  ]);
+  const invalidFields = Object.keys(fields).filter((k) => !EDITABLE_FIELDS.has(k));
+  if (invalidFields.length > 0) {
+    return res.status(400).json({ error: `Non-editable fields: ${invalidFields.join(', ')}` });
   }
 
   const discharge = await prisma.discharge.findUnique({ where: { id } });
@@ -99,7 +98,7 @@ router.patch('/:id', asyncHandler(async (req, res) => {
   }
 
   // Create edit records for each changed field
-  const editPromises = Object.entries(safeFields).map(([fieldName, newValue]) => {
+  const editPromises = Object.entries(fields).map(([fieldName, newValue]) => {
     const oldValue = (discharge as any)[fieldName];
     if (oldValue === newValue) return null;
 
@@ -120,7 +119,7 @@ router.patch('/:id', asyncHandler(async (req, res) => {
   // Update the discharge record
   const updated = await prisma.discharge.update({
     where: { id },
-    data: safeFields,
+    data: fields,
     include: { edits: { orderBy: { editedAt: 'desc' } }, enrichments: true },
   });
 
@@ -130,11 +129,11 @@ router.patch('/:id', asyncHandler(async (req, res) => {
 // POST /api/discharges/:id/review
 router.post('/:id/review', asyncHandler(async (req, res) => {
   const id = parseInt(req.params.id);
-  if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
+  if (isNaN(id)) return res.status(400).json({ error: 'Invalid discharge ID' });
   const { status, reviewedBy } = req.body;
 
-  if (!['APPROVED', 'REJECTED'].includes(status)) {
-    return res.status(400).json({ error: 'Status must be APPROVED or REJECTED' });
+  if (!['APPROVED', 'REJECTED', 'NEEDS_EDIT'].includes(status)) {
+    return res.status(400).json({ error: 'Status must be APPROVED, REJECTED, or NEEDS_EDIT' });
   }
 
   if (!reviewedBy) {
@@ -153,7 +152,7 @@ router.post('/:id/review', asyncHandler(async (req, res) => {
 // POST /api/discharges/:id/enrich
 router.post('/:id/enrich', asyncHandler(async (req, res) => {
   const id = parseInt(req.params.id);
-  if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
+  if (isNaN(id)) return res.status(400).json({ error: 'Invalid discharge ID' });
   const discharge = await prisma.discharge.findUnique({ where: { id } });
 
   if (!discharge) {

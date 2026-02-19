@@ -11,8 +11,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex">
+      {/* Skip to main content for keyboard users */}
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-teal-600 focus:text-white">
+        Skip to main content
+      </a>
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0">
+      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0" aria-label="Main navigation">
         <div className="p-6 border-b border-slate-200">
           <Link to="/" className="flex items-center gap-3">
             <div className="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center">
@@ -51,7 +55,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto">
+      <main id="main-content" className="flex-1 overflow-auto" role="main">
         <div className="max-w-7xl mx-auto p-8">{children}</div>
       </main>
     </div>

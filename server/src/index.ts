@@ -4,14 +4,28 @@ import path from 'path';
 import fs from 'fs';
 import uploadRoutes from './routes/uploads';
 import dischargeRoutes from './routes/discharges';
-import prisma from './lib/prisma';
+import { prisma } from './lib/prisma';
 import { parseDischargeText, parsePdfBuffer } from './services/pdfParser';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+
+// Request logging middleware
+app.use((req, _res, next) => {
+  if (req.path.startsWith('/api/')) {
+    const start = Date.now();
+    const origEnd = _res.end.bind(_res);
+    (_res as any).end = function (...args: any[]) {
+      const duration = Date.now() - start;
+      console.log(`${req.method} ${req.path} ${_res.statusCode} ${duration}ms`);
+      return origEnd(...args);
+    };
+  }
+  next();
+});
 
 // API Routes
 app.use('/api/uploads', uploadRoutes);
@@ -35,7 +49,9 @@ if (fs.existsSync(clientBuildPath)) {
 // Global error handler
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('Unhandled error:', err);
-  res.status(500).json({ error: 'Internal server error' });
+  const status = err.status || err.statusCode || 500;
+  const message = process.env.NODE_ENV === 'production' ? 'Internal server error' : (err.message || 'Internal server error');
+  res.status(status).json({ error: message });
 });
 
 // Auto-seed on first run
