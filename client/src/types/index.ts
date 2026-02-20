@@ -21,7 +21,7 @@ export interface Discharge {
   primaryCareProvider: string | null;
   insurance: string;
   disposition: string;
-  status: 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED';
+  status: 'PENDING_REVIEW' | 'NEEDS_EDIT' | 'APPROVED' | 'REJECTED';
   confidence: number;
   reviewedBy: string | null;
   reviewedAt: string | null;
@@ -56,6 +56,7 @@ export interface Enrichment {
 export interface Stats {
   total: number;
   pending: number;
+  needsEdit: number;
   approved: number;
   rejected: number;
   uploads: number;

@@ -24,8 +24,9 @@ export default function Dashboard() {
   }
 
   const statCards = [
-    { label: 'Total Uploads', value: stats?.uploads ?? 0, color: 'bg-blue-500', icon: '📁' },
+    { label: 'Total Records', value: stats?.total ?? 0, color: 'bg-blue-500', icon: '📊' },
     { label: 'Pending Review', value: stats?.pending ?? 0, color: 'bg-amber-500', icon: '⏳' },
+    { label: 'Needs Edit', value: stats?.needsEdit ?? 0, color: 'bg-orange-500', icon: '✏️' },
     { label: 'Approved', value: stats?.approved ?? 0, color: 'bg-emerald-500', icon: '✅' },
     { label: 'Rejected', value: stats?.rejected ?? 0, color: 'bg-red-500', icon: '❌' },
   ];
@@ -38,7 +39,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         {statCards.map((card) => (
           <div key={card.label} className="card flex items-center gap-4">
             <div className={`w-12 h-12 ${card.color} rounded-xl flex items-center justify-center text-xl`}>

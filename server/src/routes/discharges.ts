@@ -41,15 +41,16 @@ router.get('/', asyncHandler(async (req, res) => {
 
 // GET /api/discharges/stats — MUST come before /:id
 router.get('/stats', asyncHandler(async (_req, res) => {
-  const [total, pending, approved, rejected, uploads] = await Promise.all([
+  const [total, pending, needsEdit, approved, rejected, uploads] = await Promise.all([
     prisma.discharge.count(),
     prisma.discharge.count({ where: { status: 'PENDING_REVIEW' } }),
+    prisma.discharge.count({ where: { status: 'NEEDS_EDIT' } }),
     prisma.discharge.count({ where: { status: 'APPROVED' } }),
     prisma.discharge.count({ where: { status: 'REJECTED' } }),
     prisma.upload.count(),
   ]);
 
-  res.json({ total, pending, approved, rejected, uploads });
+  res.json({ total, pending, needsEdit, approved, rejected, uploads });
 }));
 
 // GET /api/discharges/:id

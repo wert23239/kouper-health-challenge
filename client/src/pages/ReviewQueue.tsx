@@ -8,6 +8,7 @@ import ConfidenceBadge from '../components/ConfidenceBadge';
 const TABS = [
   { key: 'ALL', label: 'All' },
   { key: 'PENDING_REVIEW', label: 'Pending' },
+  { key: 'NEEDS_EDIT', label: 'Needs Edit' },
   { key: 'APPROVED', label: 'Approved' },
   { key: 'REJECTED', label: 'Rejected' },
 ];

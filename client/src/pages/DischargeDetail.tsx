@@ -135,7 +135,7 @@ export default function DischargeDetail() {
                     ) : (
                       <div className="flex items-center gap-2">
                         <p className="text-slate-800">{value || <span className="text-slate-400 italic">Missing</span>}</p>
-                        {discharge.status === 'PENDING_REVIEW' && (
+                        {(discharge.status === 'PENDING_REVIEW' || discharge.status === 'NEEDS_EDIT') && (
                           <button
                             onClick={() => startEdit(field.key)}
                             className="text-slate-400 hover:text-teal-600 transition-colors"
@@ -156,7 +156,7 @@ export default function DischargeDetail() {
         {/* Actions sidebar */}
         <div className="space-y-6">
           {/* Review Actions */}
-          {discharge.status === 'PENDING_REVIEW' && (
+          {(discharge.status === 'PENDING_REVIEW' || discharge.status === 'NEEDS_EDIT') && (
             <div className="card">
               <h3 className="text-lg font-semibold text-slate-800 mb-4">Review</h3>
               <input
@@ -177,7 +177,7 @@ export default function DischargeDetail() {
             </div>
           )}
 
-          {discharge.status !== 'PENDING_REVIEW' && discharge.reviewedBy && (
+          {discharge.status !== 'PENDING_REVIEW' && discharge.status !== 'NEEDS_EDIT' && discharge.reviewedBy && (
             <div className="card">
               <h3 className="text-lg font-semibold text-slate-800 mb-2">Review Decision</h3>
               <p className="text-sm text-slate-600">

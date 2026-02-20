@@ -29,9 +29,10 @@ describe('Discharge edit validation', () => {
   });
 
   it('should validate review status values', () => {
-    const validStatuses = ['APPROVED', 'REJECTED'];
+    const validStatuses = ['APPROVED', 'REJECTED', 'NEEDS_EDIT'];
     expect(validStatuses.includes('APPROVED')).toBe(true);
     expect(validStatuses.includes('REJECTED')).toBe(true);
+    expect(validStatuses.includes('NEEDS_EDIT')).toBe(true);
     expect(validStatuses.includes('PENDING_REVIEW')).toBe(false);
     expect(validStatuses.includes('INVALID')).toBe(false);
   });
